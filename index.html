@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>অগ্রসর পারিবারিক সঞ্চয় সমিতি - Agrosor Paribarik Sanchay Samity</title>
+<link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#047857">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2830/2830284.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -330,6 +335,7 @@
                     <div class="text-right hidden sm:block">
                         <p class="text-xs opacity-70">আজকের তারিখ (Asia/Dhaka)</p>
                         <p id="header-date" class="text-sm font-bold num text-emerald-600"></p>
+<span id="firebase-status-badge" class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800">Connecting...</span>
                     </div>
                 </div>
             </header>
@@ -1607,7 +1613,7 @@
         let defaultFirebaseConfig = {
             apiKey: "AIzaSyAhC5K9yFIJ-38C3va00S3ukDtI4aRGa9M",
             authDomain: "agrosor-paribarik-samiti.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            databaseURL: "https://agrosor-paribarik-samiti-default-rtdb.firebaseio.com",
             projectId: "agrosor-paribarik-samiti",
             storageBucket: "agrosor-paribarik-samiti.firebasestorage.app",
             messagingSenderId: "319635683425",
@@ -1619,6 +1625,18 @@
         let dbRef = null;
         let isFirebaseInitialized = false;
 
+   function updateSyncBadge(isOnline) {
+            const badge = document.getElementById('firebase-status-badge');
+            if (!badge) return;
+            if (isOnline) {
+                badge.innerText = '● Live Synced';
+                badge.className = 'inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800';
+            } else {
+                badge.innerText = '● Offline Mode';
+                badge.className = 'inline-block px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-100 text-rose-800';
+            }
+        }
+
         function initFirebase(config) {
             try {
                 if (!firebaseApp) {
@@ -1626,68 +1644,67 @@
                 }
                 dbRef = firebase.database().ref('agrosor_samity_live_data');
                 isFirebaseInitialized = true;
+
+                firebase.database().ref('.info/connected').on('value', (snap) => {
+                    updateSyncBadge(snap.val() === true);
+                });
                 
-                // Realtime Listener
                 dbRef.on('value', (snapshot) => {
                     const remoteData = snapshot.val();
                     if (remoteData) {
                         db = { ...db, ...remoteData };
+                        localStorage.setItem(DB_KEY, JSON.stringify(db));
                         document.getElementById('public-member-count').innerText = db.members.length;
                         document.getElementById('header-date').innerText = formatDateBN(getTodayISO());
-                        if (currentUser && typeof renderMembersTable === 'function') {
-                            updateUIWithoutSaving();
+                        if (currentUser) {
+                            refreshAllViews(true);
                         }
+                    } else if (db.users.length > 0) {
+                        dbRef.set(db);
                     }
                 }, (error) => {
                     console.error("Firebase sync error:", error);
+                    updateSyncBadge(false);
                 });
-                console.log("Firebase initialized successfully.");
             } catch (err) {
                 console.error("Firebase init failed:", err);
-            }
-        }
-
-        function updateUIWithoutSaving() {
-            const activeCount = db.members.filter(m => m.status === 'Active').length;
-            const closedCount = db.members.filter(m => m.status === 'Closed').length;
-            const mCountEl = document.getElementById('dash-total-members');
-            if (mCountEl) {
-                mCountEl.innerText = db.members.length;
-                document.getElementById('dash-active-members').innerText = activeCount;
-                document.getElementById('dash-closed-members').innerText = closedCount;
-                renderMembersTable();
-                renderDPSTable();
-                renderLoansTable();
-                renderInventory();
-                renderResolutions();
-                renderOverdueTracker();
+                updateSyncBadge(false);
             }
         }
 
         function loadDB() {
-            let config = defaultFirebaseConfig;
-            if (config.apiKey === "YOUR_FIREBASE_API_KEY") {
-                const raw = localStorage.getItem(DB_KEY) || localStorage.getItem('AGROSOR_SAMITY_DB_V1');
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    db = { ...db, ...parsed };
-                }
-                document.getElementById('public-member-count').innerText = db.members.length;
-                document.getElementById('header-date').innerText = formatDateBN(getTodayISO());
-                updateSavedUsernames();
-            } else {
-                initFirebase(config);
+            const raw = localStorage.getItem(DB_KEY) || localStorage.getItem('AGROSOR_SAMITY_DB_V1');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                db = { ...db, ...parsed };
+            }
+            document.getElementById('public-member-count').innerText = db.members.length;
+            document.getElementById('header-date').innerText = formatDateBN(getTodayISO());
+            updateSavedUsernames();
+
+            if (defaultFirebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
+                initFirebase(defaultFirebaseConfig);
             }
         }
 
-        function saveDB() {
+        function saveDB(skipRemote = false) {
             localStorage.setItem(DB_KEY, JSON.stringify(db));
             document.getElementById('public-member-count').innerText = db.members.length;
             
-            if (isFirebaseInitialized && dbRef) {
+            if (!skipRemote && isFirebaseInitialized && dbRef) {
                 dbRef.set(db).catch(err => console.error("Firebase save failed:", err));
             }
         }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA Registered:', reg.scope))
+                    .catch(err => console.log('PWA Failed:', err));
+            });
+        }     
+
+
 
 
         // Double Entry Journal Recorder
@@ -3021,8 +3038,8 @@
             }).join('');
         }
 
-        function refreshAllViews() {
-            saveDB();
+        function refreshAllViews(skipRemote = false) {
+            saveDB(skipRemote);
             const today = getTodayISO();
 
             // Set default dates on inputs if empty
