@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>অগ্রসর পারিবারিক সঞ্চয় সমিতি - Agrosor Paribarik Sanchay Samity</title>
-<link rel="manifest" href="manifest.json">
+<!-- Standalone HTML: no external manifest required -->
     <meta name="theme-color" content="#047857">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2830/2830284.png">
@@ -69,6 +70,48 @@
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+
+
+        /* Mobile layout and compact dashboard improvements */
+        * { box-sizing: border-box; }
+        html, body { min-height: 100%; }
+        body { overflow-x: hidden; }
+        #app-shell { min-height: 100dvh; height: 100dvh; }
+        #app-shell > .flex-1 { min-width: 0; }
+        .view-section { min-width: 0; }
+        #view-dashboard { gap: .75rem !important; }
+        #view-dashboard .card-3d { padding: .85rem !important; }
+        #view-dashboard .grid { gap: .65rem !important; }
+        #view-dashboard h3 { font-size: 1.15rem !important; }
+        #view-dashboard .text-2xl { font-size: 1.2rem !important; }
+        #view-dashboard .text-base { font-size: .92rem !important; }
+        #view-dashboard .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: .8rem !important; }
+        #view-dashboard .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: .25rem !important; }
+        main { min-width: 0; -webkit-overflow-scrolling: touch; }
+        input, select, textarea, button { max-width: 100%; }
+        table { min-width: 560px; }
+        @media (max-width: 767px) {
+            #app-shell { height: 100dvh; }
+            #sidebar { width: min(86vw, 320px); }
+            #app-shell > .flex-1 > header { min-height: 56px; height: auto; padding: .55rem .65rem; gap: .4rem; }
+            #page-title { font-size: .95rem !important; line-height: 1.25; }
+            #app-shell main { padding: .65rem !important; gap: .75rem !important; }
+            #view-dashboard > .grid:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+            #view-dashboard .card-3d { padding: .65rem !important; border-radius: .8rem !important; }
+            #view-dashboard .text-xs { font-size: .68rem !important; line-height: 1.35; }
+            #view-dashboard h3, #view-dashboard .text-2xl { font-size: 1rem !important; overflow-wrap: anywhere; }
+            #view-dashboard .p-5 { padding: .65rem !important; }
+            #view-dashboard .grid-cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            #view-dashboard .grid-cols-2 button { min-height: 76px; padding: .5rem !important; }
+            .card-3d { max-width: 100%; }
+            #login-modal { align-items: flex-start; overflow-y: auto; }
+            #login-modal > .card-3d { margin: auto 0; padding: 1.1rem !important; }
+            .watermark { bottom: 4px; right: 6px; font-size: 8px; }
+        }
+        @media (max-width: 380px) {
+            #view-dashboard > .grid:first-child { grid-template-columns: 1fr 1fr !important; }
+            #view-dashboard .text-xs { font-size: .62rem !important; }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -325,7 +368,10 @@
         <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <header class="h-16 border-b border-slate-200 dark:border-slate-800 px-4 md:px-6 flex items-center justify-between bg-white dark:bg-slate-900">
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 min-w-0">
+                    <button id="app-back-btn" onclick="goBack()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-emerald-700" title="আগের পেজে ফিরুন" aria-label="আগের পেজে ফিরুন">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
                     <button onclick="toggleSidebar()" class="md:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                         <i data-lucide="menu" class="w-6 h-6"></i>
                     </button>
@@ -340,6 +386,19 @@
                 </div>
             </header>
 
+            <section class="px-3 md:px-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-900 px-3 py-2 min-w-0">
+                    <div class="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 mb-1">আজকের অনুপ্রেরণা</div>
+                    <p id="daily-inspiration" class="text-sm font-semibold leading-snug">প্রতিদিনের ছোট পদক্ষেপই বড় সাফল্যের ভিত্তি।</p>
+                    <p id="daily-inspiration-author" class="text-[11px] opacity-70 mt-1"></p>
+                </div>
+                <div class="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 flex flex-wrap items-center gap-2 min-w-0">
+                    <label for="local-music-files" class="text-xs font-semibold whitespace-nowrap cursor-pointer text-emerald-700 dark:text-emerald-300">♫ ফোনের গান</label>
+                    <input id="local-music-files" type="file" accept="audio/*" multiple class="text-[11px] min-w-0 flex-1" onchange="loadLocalMusic(event)">
+                    <span id="local-music-name" class="text-[11px] opacity-70 w-full truncate">গান নির্বাচন করুন</span>
+                    <audio id="local-music-player" controls class="w-full h-8" preload="none"></audio>
+                </div>
+            </section>
             <main class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
 
                 <!-- ================= VIEW: DASHBOARD ================= -->
@@ -1696,16 +1755,7 @@
             }
         }
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA Registered:', reg.scope))
-                    .catch(err => console.log('PWA Failed:', err));
-            });
-        }     
-
-
-
+        // Standalone HTML build: service worker disabled to avoid missing sw.js 404.
 
         // Double Entry Journal Recorder
         function recordJournal(date, refNo, description, debitAc, creditAc, amount, method = 'Cash') {
@@ -1805,8 +1855,9 @@
             loginSuccess(user, remember);
         }
 
-        function loginSuccess(user, remember) {
+        function loginSuccess(user, remember, restoring = false) {
             currentUser = user;
+            try { localStorage.setItem('AGROSOR_ACTIVE_SESSION', JSON.stringify({ userId: user.id, username: user.username, savedAt: Date.now() })); } catch (e) { console.warn('Session storage unavailable', e); }
             if (remember) {
                 let saved = JSON.parse(localStorage.getItem('AGROSOR_USERNAMES') || '[]');
                 if (!saved.includes(user.username)) {
@@ -1829,20 +1880,30 @@
             wm.innerText = `User: ${user.name} (${user.username}) | ${new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka' })}`;
             wm.classList.remove('hidden');
 
-            logAudit('LOGIN', `${user.username} logged in`);
+            if (!restoring) logAudit('LOGIN', `${user.username} logged in`);
             refreshAllViews();
+            if (typeof navigate === 'function') navigate('dashboard', true);
         }
 
         function logout() {
             logAudit('LOGOUT', `${currentUser.username} logged out`);
             currentUser = null;
+            localStorage.removeItem('AGROSOR_ACTIVE_SESSION');
             document.getElementById('app-shell').classList.add('hidden');
             document.getElementById('landing-page').classList.remove('hidden');
             document.getElementById('security-watermark').classList.add('hidden');
         }
 
         // ================= NAVIGATION =================
-        function navigate(viewId) {
+        let appNavigationHistory = [];
+        function navigate(viewId, fromRestore = false) {
+            if (!document.getElementById(`view-${viewId}`)) return;
+            const currentView = document.querySelector('.view-section:not(.hidden)')?.id?.replace('view-', '');
+            if (!fromRestore && currentView && currentView !== viewId) {
+                appNavigationHistory.push(currentView);
+                if (appNavigationHistory.length > 30) appNavigationHistory.shift();
+            }
+            if (fromRestore) appNavigationHistory = [];
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(`view-${viewId}`).classList.remove('hidden');
 
@@ -1873,6 +1934,18 @@
             refreshAllViews();
         }
 
+        function goBack() {
+            while (appNavigationHistory.length) {
+                const remaining = appNavigationHistory.slice(0, -1);
+                const previous = appNavigationHistory.pop();
+                if (previous && document.getElementById(`view-${previous}`)) {
+                    navigate(previous, true);
+                    appNavigationHistory = remaining;
+                    return;
+                }
+            }
+            navigate('dashboard', true);
+        }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
         function toggleTheme() {
             const html = document.documentElement;
@@ -3139,8 +3212,60 @@
             lucide.createIcons();
         }
 
+
+        // Daily quote changes by local date, so the same quote remains all day.
+        const dailyInspirations = [
+            ['ধৈর্য ধরে নিয়মিত কাজ করলে ছোট সঞ্চয়ও একদিন বড় সম্পদ হয়।','অগ্রসর'],
+            ['সততা হলো এমন পুঁজি, যা হারালে সব অর্জনই মূল্যহীন হয়ে যায়।','জীবনের শিক্ষা'],
+            ['আজকের শৃঙ্খলাই আগামী দিনের আর্থিক নিরাপত্তা গড়ে।','অগ্রসর'],
+            ['একটি ভালো সিদ্ধান্ত, প্রতিদিনের অনেক ছোট ভুলকে থামাতে পারে।','অনুপ্রেরণা'],
+            ['বিশ্বাস অর্জন করতে সময় লাগে, রক্ষা করতে লাগে সততা।','জীবনের শিক্ষা'],
+            ['লক্ষ্য বড় হোক, কিন্তু প্রতিদিনের পদক্ষেপ হোক বাস্তবসম্মত।','অনুপ্রেরণা'],
+            ['সঞ্চয়ের সবচেয়ে বড় শক্তি হলো নিয়মিত থাকার অভ্যাস।','অগ্রসর'],
+            ['যে হিসাব স্বচ্ছ, সেই প্রতিষ্ঠানের প্রতি মানুষের আস্থা দৃঢ়।','অগ্রসর'],
+            ['সময়কে কাজে লাগান, সময়ই একদিন আপনার পক্ষে কাজ করবে।','অনুপ্রেরণা'],
+            ['ভুল থেকে শিক্ষা নিন, কিন্তু একই ভুলকে অভ্যাস হতে দেবেন না।','জীবনের শিক্ষা'],
+            ['পরিশ্রমের সঙ্গে পরিকল্পনা যুক্ত হলে সাফল্যের পথ পরিষ্কার হয়।','অনুপ্রেরণা'],
+            ['মানুষের আস্থা রক্ষা করাই আর্থিক প্রতিষ্ঠানের সবচেয়ে বড় দায়িত্ব।','অগ্রসর']
+        ];
+        function renderDailyInspiration() {
+            const day = Math.floor(new Date().setHours(0,0,0,0) / 86400000);
+            const quote = dailyInspirations[((day % dailyInspirations.length) + dailyInspirations.length) % dailyInspirations.length];
+            const q = document.getElementById('daily-inspiration');
+            const a = document.getElementById('daily-inspiration-author');
+            if (q) q.textContent = '“' + quote[0] + '”';
+            if (a) a.textContent = '— ' + quote[1];
+        }
+        let localMusicUrls = [];
+        function loadLocalMusic(event) {
+            const files = Array.from(event.target.files || []).filter(f => f.type.startsWith('audio/'));
+            const player = document.getElementById('local-music-player');
+            const name = document.getElementById('local-music-name');
+            localMusicUrls.forEach(URL.revokeObjectURL);
+            localMusicUrls = files.map(f => URL.createObjectURL(f));
+            if (!files.length) { name.textContent = 'কোনো অডিও ফাইল পাওয়া যায়নি'; player.removeAttribute('src'); return; }
+            player.src = localMusicUrls[0];
+            name.textContent = files.length > 1 ? files[0].name + ' (সহ আরও ' + (files.length-1) + 'টি গান)' : files[0].name;
+            player.onended = () => {
+                const current = localMusicUrls.indexOf(player.src);
+                const next = current + 1;
+                if (next < localMusicUrls.length) { player.src = localMusicUrls[next]; player.play().catch(()=>{}); name.textContent = files[next].name; }
+            };
+        }
+        function restoreLocalSession() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('AGROSOR_ACTIVE_SESSION') || 'null');
+                if (!saved || Date.now() - saved.savedAt > 12 * 60 * 60 * 1000) { localStorage.removeItem('AGROSOR_ACTIVE_SESSION'); return; }
+                const user = db.users.find(u => u.id === saved.userId && u.username === saved.username && u.status !== 'Locked');
+                if (user) loginSuccess(user, false, true);
+                else localStorage.removeItem('AGROSOR_ACTIVE_SESSION');
+            } catch (e) { localStorage.removeItem('AGROSOR_ACTIVE_SESSION'); }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadDB();
+            renderDailyInspiration();
+            restoreLocalSession();
             lucide.createIcons();
         });
     </script>
